@@ -1,32 +1,38 @@
-// main.ts — Node 22, stdlib only.
-// Copies entry.png (next to this file) to /output/entry.png, then reads it back
-// and verifies byte-length + sha256 match, PNG magic bytes, and 1024x1024 size.
+// main.ts — v3 entry runner (Node 22, stdlib only).
+// Copies entry.png to /output/entry.png, verifying PNG magic bytes,
+// 1024x1024 dimensions, <=1 MiB size, and read-back byte-length + sha256.
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const here = dirname(fileURLToPath(import.meta.url));
-const src = join(here, 'entry.png');
-const dst = '/output/entry.png';
+const root = dirname(fileURLToPath(import.meta.url));
+const src = join(root, 'entry.png');
+const outDir = '/output';
+const dst = join(outDir, 'entry.png');
+const MAX_BYTES = 1024 * 1024;
 
-const data = readFileSync(src);
-if (data.length === 0) throw new Error('entry.png is empty');
-if (data.length > 1048576) throw new Error(`entry.png too large: ${data.length} bytes > 1048576 (1 MiB)`);
-const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-if (!data.subarray(0, 8).equals(PNG_MAGIC)) throw new Error('not a PNG file');
-// IHDR: width/height are big-endian uint32 at offsets 16/20.
-const width = data.readUInt32BE(16);
-const height = data.readUInt32BE(20);
-if (width !== 1024 || height !== 1024) throw new Error(`bad dimensions ${width}x${height}, want 1024x1024`);
-const digest = createHash('sha256').update(data).digest('hex');
-
-mkdirSync(dirname(dst), { recursive: true });
-writeFileSync(dst, data);
-
+const buf = readFileSync(src);
+if (buf.length > MAX_BYTES) {
+  console.error(`entry.png is ${buf.length} bytes, over the 1 MiB limit`);
+  process.exit(1);
+}
+const MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+if (!buf.subarray(0, 8).equals(MAGIC)) {
+  console.error('entry.png is not a PNG (bad magic bytes)');
+  process.exit(1);
+}
+if (buf.readUInt32BE(16) !== 1024 || buf.readUInt32BE(20) !== 1024) {
+  console.error(`entry.png is ${buf.readUInt32BE(16)}x${buf.readUInt32BE(20)}, expected 1024x1024`);
+  process.exit(1);
+}
+mkdirSync(outDir, { recursive: true });
+writeFileSync(dst, buf);
 const back = readFileSync(dst);
-if (back.length !== data.length) throw new Error(`read-back length ${back.length} != ${data.length}`);
-const backDigest = createHash('sha256').update(back).digest('hex');
-if (backDigest !== digest) throw new Error('read-back sha256 mismatch');
-console.log(`ok: ${dst} ${back.length} bytes sha256 ${backDigest} ${width}x${height}`);
-console.log(`source: ${src} ${statSync(src).size} bytes`);
+const sha = (b) => createHash('sha256').update(b).digest('hex');
+if (back.length !== buf.length || sha(back) !== sha(buf)) {
+  console.error('read-back verification failed');
+  process.exit(1);
+}
+console.log(`OK: entry.png ${buf.length} bytes, 1024x1024, sha256 ${sha(buf)}`);
+console.log(`copied to ${dst} (read-back verified)`);
