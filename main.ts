@@ -21,10 +21,12 @@ if (!buf.subarray(0, 8).equals(PNG_MAGIC)) {
   console.error('entry.png is not a PNG (bad magic bytes)');
   process.exit(1);
 }
+const sha = (b: Buffer) => createHash('sha256').update(b).digest('hex');
+const srcSha = sha(buf);
 // PNG IHDR: width at bytes 16-19, height at 20-23, big-endian.
 const width = buf.readUInt32BE(16);
 const height = buf.readUInt32BE(20);
-console.log(`entry.png dimensions: ${width}x${height}`);
+console.log(`entry.png dimensions: ${width}x${height} (${buf.length} bytes, sha256=${srcSha.slice(0, 8)}…)`);
 if (width !== 1024 || height !== 1024) {
   console.error(`expected 1024x1024, got ${width}x${height}`);
   process.exit(1);
@@ -33,8 +35,7 @@ mkdirSync(dirname(DEST), { recursive: true });
 writeFileSync(DEST, buf);
 // Read back and verify byte-length + sha256 match the source.
 const back = readFileSync(DEST);
-const sha = (b: Buffer) => createHash('sha256').update(b).digest('hex');
-if (back.length !== buf.length || sha(back) !== sha(buf)) {
+if (back.length !== buf.length || sha(back) !== srcSha) {
   console.error('read-back verification failed: /output/entry.png differs from entry.png');
   process.exit(1);
 }

@@ -99,21 +99,28 @@ S += poly([[28,41],[33,42],[36,44],[40,44],[44,44],[44,47],[40,47],[36,46],[32,4
 S += poly([[34,29],[36,31],[36,36],[34,36],[32,32],[34,29]]);
 S += poly([[40,68],[60,70],[90,75],[120,73],[150,70],[178,66],[170,60],[162,55],[158,50],[142,45],[140,40],[130,35],[127,35],[122,30],[120,22],[110,20],[105,10],[100,8],[95,16],[90,22],[80,15],[77,8],[72,20],[66,25],[60,25],[58,23],[55,17],[48,14],[43,13],[39,21],[43,29],[48,30],[44,32],[42,37],[40,45],[40,55],[40,68]]);
 S += poly([[113,-12],[120,-14],[130,-12],[140,-17],[150,-22],[154,-28],[150,-37],[140,-38],[130,-32],[122,-34],[115,-35],[113,-22],[113,-12]]);
-// pins: [n, lat, lon, label, dx, dy] — tanker pin on Oman coast, MQ-9 on Iran mainland (sea events, land pins)
+// pins: [n, lat, lon, label, dx, dy, bx, by] — tanker pin on Oman coast, MQ-9 on Iran mainland (sea events, land pins)
+// bx/by: badge offset from the true lat/lon point (dot + leader line) so the
+// numbered badges in the Mideast + US-East clusters stop overlapping each other.
 const PINS = [
-  [1, 22.5, 114.1, 'Shenzhen', 8, -8], [2, 26.5, 56.3, 'Qeshm', 8, 12],
-  [3, 45.3, 36.5, 'Kerch', 8, -8], [4, 64, -152, 'Alaska', 8, 12],
-  [5, 36.9, 30.7, 'Antalya', -80, -12], [6, 31.5, 34.5, 'Gaza', -60, 14],
-  [7, 38.9, -77, 'Washington', 8, -8], [8, 40.7, -74, 'New York', 8, 10],
-  [9, 37.8, -122.4, 'San Francisco', -78, -8], [10, 36, -78.9, 'Durham', -52, 12],
-  [11, 24.2, 58.8, 'Gulf of Oman', 8, -10], [12, 30.5, 51, 'MQ-9', -36, 16],
-  [13, 1.6, 30.2, 'Bunia', 8, 14], [14, 15.3, 44.2, 'Sanaa', -48, 16],
+  [1, 22.5, 114.1, 'Shenzhen', 8, -8, 0, 0], [2, 26.5, 56.3, 'Qeshm', 10, -14, -4, -9],
+  [3, 45.3, 36.5, 'Kerch', -10, -10, 2, -4], [4, 64, -152, 'Alaska', 8, 16, 0, 0],
+  [5, 36.9, 30.7, 'Antalya', -80, -12, -10, 0], [6, 31.5, 34.5, 'Gaza', -30, 24, 3, 11],
+  [7, 38.9, -77, 'Washington', 8, -8, -2, -8], [8, 40.7, -74, 'New York', 8, 10, 5, -4],
+  [9, 37.8, -122.4, 'San Francisco', -78, -8, 0, 0], [10, 36, -78.9, 'Durham', -52, 12, -3, 6],
+  [11, 24.2, 58.8, 'Gulf of Oman', 8, -10, 5, 6], [12, 30.5, 51, 'MQ-9', 0, -20, -5, -8],
+  [13, 1.6, 30.2, 'Bunia', 8, 14, 0, 0], [14, 15.3, 44.2, 'Sanaa', 10, 16, 0, 0],
 ];
-PINS.forEach(([n, la, lo, lab, dx, dy]) => {
+PINS.forEach(([n, la, lo, lab, dx, dy, bx = 0, by = 0]) => {
   const x = px(lo), y = py(la);
-  S += `<line x1="${x}" y1="${y}" x2="${x + dx}" y2="${y + dy}" stroke="${INK}" stroke-width="0.8"/>`;
-  S += T(x + dx + (dx < 0 ? -4 : 4), y + dy + 3, lab, 10, INK, '700', dx < 0 ? 'end' : 'start');
-  S += C(x, y, 7, RED, '#ffffff', 1.5) + T(x, y + 3.5, String(n), 9, '#ffffff', '800', 'middle');
+  const bx2 = x + bx, by2 = y + by;
+  if (bx || by) {
+    S += C(x, y, 2.5, RED, '#ffffff', 1);
+    S += `<line x1="${x}" y1="${y}" x2="${bx2}" y2="${by2}" stroke="${INK}" stroke-width="0.8"/>`;
+  }
+  S += `<line x1="${bx2}" y1="${by2}" x2="${bx2 + dx}" y2="${by2 + dy}" stroke="${INK}" stroke-width="0.8"/>`;
+  S += T(bx2 + dx + (dx < 0 ? -4 : 4), by2 + dy + 3, lab, 10, INK, '700', dx < 0 ? 'end' : 'start');
+  S += C(bx2, by2, 7, RED, '#ffffff', 1.5) + T(bx2, by2 + 3.5, String(n), 9, '#ffffff', '800', 'middle');
 });
 // ---- UTC TIMELINE (y 702..756) ----
 S += R(8, 702, 1008, 54, '#f8f4e8', INK, 1.2) + T(14, 716, 'UTC TIMELINE \u2014 18 NOV', 13, INK, '800');
