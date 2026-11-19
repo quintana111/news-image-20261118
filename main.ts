@@ -22,10 +22,13 @@ if (!buf.subarray(0, 8).equals(MAGIC)) {
   console.error('entry.png is not a PNG (bad magic bytes)');
   process.exit(1);
 }
-if (buf.readUInt32BE(16) !== 1024 || buf.readUInt32BE(20) !== 1024) {
-  console.error(`entry.png is ${buf.readUInt32BE(16)}x${buf.readUInt32BE(20)}, expected 1024x1024`);
+const width = buf.readUInt32BE(16);
+const height = buf.readUInt32BE(20);
+if (width !== 1024 || height !== 1024) {
+  console.error(`entry.png is ${width}x${height}, expected 1024x1024`);
   process.exit(1);
 }
+console.log(`PNG dimensions: ${width}x${height}`);
 mkdirSync(outDir, { recursive: true });
 writeFileSync(dst, buf);
 const back = readFileSync(dst);
@@ -34,5 +37,5 @@ if (back.length !== buf.length || sha(back) !== sha(buf)) {
   console.error('read-back verification failed');
   process.exit(1);
 }
-console.log(`OK: entry.png ${buf.length} bytes, 1024x1024, sha256 ${sha(buf)}`);
+console.log(`OK: entry.png ${buf.length} bytes, ${width}x${height}, sha256 ${sha(buf)}`);
 console.log(`copied to ${dst} (read-back verified)`);
