@@ -12,6 +12,7 @@ const dst = '/output/entry.png';
 
 const data = readFileSync(src);
 if (data.length === 0) throw new Error('entry.png is empty');
+if (data.length > 1048576) throw new Error(`entry.png too large: ${data.length} bytes > 1048576 (1 MiB)`);
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 if (!data.subarray(0, 8).equals(PNG_MAGIC)) throw new Error('not a PNG file');
 // IHDR: width/height are big-endian uint32 at offsets 16/20.
@@ -20,7 +21,7 @@ const height = data.readUInt32BE(20);
 if (width !== 1024 || height !== 1024) throw new Error(`bad dimensions ${width}x${height}, want 1024x1024`);
 const digest = createHash('sha256').update(data).digest('hex');
 
-mkdirSync('/output', { recursive: true });
+mkdirSync(dirname(dst), { recursive: true });
 writeFileSync(dst, data);
 
 const back = readFileSync(dst);
